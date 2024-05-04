@@ -5,18 +5,38 @@ import { defineComponent } from 'vue';
 import { LMap, LTileLayer } from 'vue-leaflet-ng';
 import FeaturesVic from '@/assets/features_vic.json';
 import FeatureProps from '@/assets/feature_props.json';
+import CouncilWatch from '@/assets/average-employee-costs_2023.json';
 import type { Feature } from 'geojson';
 
+  // {
+  //   "Local Council": "West Wimmera",
+  //   "Total FTE": "113",
+  //   "Total Employment Costs": "10792000",
+  //   "Average Salary": "10792001",
+  //   "Profit": "10792002",
+  //   "Staff per 1000 population": "28.69",
+  //   "Population 2022": "3938",
+  //   "Population 2021": "3977",
+  //   "Cohort and Category": "Wimmera Sth Mallee",
+  //   "CEO Remuneration 2021-2022": "$220-230k",
+  //   "Type": "Category 1 Councils with 5 or 6 Councillors"
+  // },
 
 function areaPopup(id: number) {
   const props = FeatureProps.find((v) => v._id === id);
   if(!props) return 'Unknown';
+  let watch: Record<string, string | number | undefined> | undefined = CouncilWatch.find((v) => (props && v['Local Council'] === props['local_council_name']));
+  if(!watch) return 'Unknown';
+  watch = { ...watch, Area: props.st_area_shape_ };
+  const skip = ['Local Council'];
+  if(!watch) return 'Unknown';
+  let _html = '';
+  for(const [k, v] of Object.entries(watch).filter(([k, v]) => !skip.includes(k))) {
+    _html += `<dt>${k}</dt><dd>${v || 'Unknown'}</dd><br>`;
+  }
   return `
-  <h3>${props.LGA_CODE_2019}</h3>
-  <dl class='popup-details'>
-    <dt>Feature ID</dt><dd>${id || 'Unknown'}</dd>
-    <dt>State</dt><dd>${props.STATE_CODE_2016 || 'Unknown'}</dd>
-  </dl>`;
+  <h3>${watch['Local Council']}</h3>
+  <dl>${_html}</dl>`;
 }
 
 export default defineComponent({
