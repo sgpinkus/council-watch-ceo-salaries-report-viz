@@ -11,6 +11,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
+  base: 'https://sgpinkus.github.io/council-watch-ceo-salaries-report-viz/',
   build: {
     outDir: 'docs/',
   },
