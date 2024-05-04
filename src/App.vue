@@ -4,40 +4,69 @@ import type { Map } from 'leaflet';
 import { defineComponent } from 'vue';
 import { LMap, LTileLayer } from 'vue-leaflet-ng';
 import FeaturesVic from '@/assets/features_vic.json';
-import FeatureProps from '@/assets/feature_props.json';
-import CouncilWatch from '@/assets/average-employee-costs_2023.json';
+import FeatureProps from '@/assets/feature_props_vic.json';
 import type { Feature } from 'geojson';
+import colormap from 'colormap';
 
-  // {
-  //   "Local Council": "West Wimmera",
-  //   "Total FTE": "113",
-  //   "Total Employment Costs": "10792000",
-  //   "Average Salary": "10792001",
-  //   "Profit": "10792002",
-  //   "Staff per 1000 population": "28.69",
-  //   "Population 2022": "3938",
-  //   "Population 2021": "3977",
-  //   "Cohort and Category": "Wimmera Sth Mallee",
-  //   "CEO Remuneration 2021-2022": "$220-230k",
-  //   "Type": "Category 1 Councils with 5 or 6 Councillors"
-  // },
+const CouncilWatchFields = {
+  'Local Council': 'West Wimmera',
+  'Total FTE': '113',
+  'Total Employment Costs': '10792000',
+  'Average Salary': '10792001',
+  'Profit': '10792002',
+  'Staff per 1000 population': '28.69',
+  'Population 2022': '3938',
+  'Population 2021': '3977',
+  'Cohort and Category': 'Wimmera Sth Mallee',
+  'CEO Remuneration 2021-2022': '225',
+  'Type': 'Category 1 Councils with 5 or 6 Councillors',
+  'Area': 'x',
+};
+const CouncilWatchHeatFields = {
+  'Total FTE': '113',
+  'Total Employment Costs': '10792000',
+  'Average Salary': '10792001',
+  'Profit': '10792002',
+  'Staff per 1000 population': '28.69',
+  'Population 2022': '3938',
+  'Population 2021': '3977',
+  'CEO Remuneration 2021-2022': '225',
+  'Area': 'x',
+};
+// const CouncilWatchUnitsAndFormatters = {};
+const _colorMap = colormap({
+  colormap: 'jet',
+  nshades: 20,
+  format: 'hex',
+});
+// Used for hacked reactivity.
+let _leafletFeatureUnbind: Record<number, any> = {};
+
 
 function areaPopup(id: number) {
   const props = FeatureProps.find((v) => v._id === id);
   if(!props) return 'Unknown';
-  let watch: Record<string, string | number | undefined> | undefined = CouncilWatch.find((v) => (props && v['Local Council'] === props['local_council_name']));
-  if(!watch) return 'Unknown';
-  watch = { ...watch, Area: props.st_area_shape_ };
+  // @ts-ignore
+  props['Area'] = props.st_area_shape_;
   const skip = ['Local Council'];
-  if(!watch) return 'Unknown';
+  const include = Object.keys(CouncilWatchFields);
   let _html = '';
-  for(const [k, v] of Object.entries(watch).filter(([k, v]) => !skip.includes(k))) {
+  for(const [k, v] of Object.entries(props).filter(([k, v]) => include.includes(k) && !skip.includes(k))) {
     _html += `<dt>${k}</dt><dd>${v || 'Unknown'}</dd><br>`;
   }
   return `
-  <h3>${watch['Local Council']}</h3>
+  <h3>${props['Local Council']}</h3>
   <dl>${_html}</dl>`;
 }
+
+
+function makeHeatMap(k: string, collection: Record<string, any>[], n = 20) {
+  const present = collection.filter(v => v[k] !== undefined && v[k] !== null);
+  const absent = collection.filter(v => v[k] === undefined || v[k] === null);
+  const sorted = present.toSorted((a,b) => a[k] < b[k] ? -1 : a[k] > b[k] ? 1 : 0 );
+  return sorted.map((v, k) => ({ _id: v._id, k, bucket: Math.floor(n*(k/present.length)) }));
+}
+
 
 export default defineComponent({
   components: {
@@ -67,35 +96,74 @@ export default defineComponent({
         app: true,
         rail: false,
         order: 2,
-      }
+      },
+      councilWatchFields: Object.keys(CouncilWatchFields),
+      councilWatchHeatFields: ['None', ...Object.keys(CouncilWatchHeatFields)],
+      heatKey: 'CEO Remuneration 2021-2022',
+      heatMaps: {},
+      rail: false,
+      featureProps: FeatureProps,
+      filterText: 's',
+      focusedFeature: undefined,
     };
   },
-  computed: {},
+  computed: {
+    heatMap() {
+      return this.heatMaps[this.heatKey] || undefined;
+    },
+    searchResults() {
+      return [undefined, ...FeatureProps.map(v => v['Local Council'])];
+    }
+  },
+  watch: {
+    heatKey: {
+      handler(k) {
+        if(!this.heatMaps[k] && k !== 'None') {
+          this.heatMaps[k] = makeHeatMap(k, FeatureProps);
+        }
+        if(this.map) {
+          this.bindFeatures();
+        }
+      },
+      immediate: true,
+    },
+    focusedFeature(n) {
+      if(n) _leafletFeatureUnbind[n._id].openPopup();
+    }
+  },
   methods: {
     mapReady(map: Map) {
       console.log('Map ready');
       this.map = map;
-      FeaturesVic.map(f => {
-          L.geoJSON<Feature[]>(f as any, {
+      this.bindFeatures();
+      // @ts-ignore
+      map.fitBounds(L.latLngBounds(...this.initBBox));
+    },
+    bindFeatures() {
+      Object.values(_leafletFeatureUnbind).map(v => v.remove());
+      _leafletFeatureUnbind = Object.fromEntries(FeaturesVic.map((f) => {
+          return [f._id, L.geoJSON<Feature[]>(f as any, {
           coordsToLatLng: (x: any) => L.Projection.SphericalMercator.unproject(L.point(x)),
           pointToLayer: (_, latlng) => L.circle(latlng),
           style: { // https://leafletjs.com/reference.html#path-option
-            color: '#FF0000',
+            color: '#000000',
+            fillColor: this.getFeatureColor(f._id),
+            fillOpacity: 0.5,
             weight: 1,
           }
         })
         .bindPopup(areaPopup(f._id))
-        .addTo(map);
-      });
-      // @ts-ignore
-      map.fitBounds(L.latLngBounds(...this.initBBox));
+        .addTo(this.map)];
+      }));
     },
-    mapResize() {
-      console.log(this.map?.getBounds(), this.map?.getZoom());
+    getFeatureColor(id: number) {
+      const uncolored = '#AAAAAA';
+      if(this.heatMap) {
+        const bucket = this.heatMap.find((v: any) => v._id === id)?.bucket;
+        return bucket !== undefined ?_colorMap[bucket] : uncolored;
+      }
+      return uncolored;
     },
-    mapClick(e: any) {
-      console.log(e?.latlng);
-    }
   },
   mounted() {
     console.log('App Mounted');
@@ -108,17 +176,32 @@ export default defineComponent({
     <v-navigation-drawer
       v-bind='navDrawerProps'
     >
-      <v-list>
-        <v-list-item
-          title='Add Random Marker'
-          prepend-icon='mdi-map-marker-plus'
-        >
+      <v-list density='compact'>
+        <v-list-subheader v-if='!rail'>Heat Map</v-list-subheader>
+        <v-list-item  density='compact'>
+          <v-radio-group v-model='heatKey'>
+            <v-radio v-for="(v) in councilWatchHeatFields" :key=v
+                :label="v"
+                density='compact'
+                hide-details
+                :value='v'
+            >
+            </v-radio>
+          </v-radio-group>
         </v-list-item>
-        <v-list-item
-          title='Remove Random Marker'
-          prepend-icon='mdi-map-marker-minus'
-        >
-        </v-list-item>
+        <v-divider></v-divider>
+        <v-spacer>&nbsp;</v-spacer>
+        <v-list-subheader v-if='!rail'>Focus Council</v-list-subheader>
+        <v-autocomplete
+          v-model="focusedFeature"
+          v-model:search="filterText"
+          :items="featureProps"
+          item-title="Local Council"
+          item-value="Local Council"
+          return-object
+          no-filter
+          style="max-height: 50vh;"
+        ></v-autocomplete>
       </v-list>
     </v-navigation-drawer>
     <v-main app style="height: 100vh">
@@ -127,10 +210,6 @@ export default defineComponent({
           style="height: 100vh"
           :='mapOptions'
           @ready="mapReady"
-          @resize="mapResize"
-          @zoomend="mapResize"
-          @moveend="mapResize"
-          @click="mapClick"
         >
           <LTileLayer :='tileLayer'></LTileLayer>
         </LMap>
