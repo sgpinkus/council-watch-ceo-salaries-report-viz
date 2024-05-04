@@ -3,7 +3,6 @@ Council watch collated a table on all Victorian Councils' expenditure including 
 
 # TODO
 
-  - Search.
   - Heat map key.
   - Attribution main sources
   - Links to more info for each council.

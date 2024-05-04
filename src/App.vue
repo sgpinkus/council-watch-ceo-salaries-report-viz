@@ -176,10 +176,14 @@ export default defineComponent({
     <v-navigation-drawer
       v-bind='navDrawerProps'
     >
-      <v-list density='compact'>
+      <v-list density='compact' style='padding: 0'>
+        <v-divider thickness='10'></v-divider>
         <v-list-subheader v-if='!rail'>Heat Map</v-list-subheader>
         <v-list-item  density='compact'>
-          <v-radio-group v-model='heatKey'>
+          <v-radio-group
+            v-model='heatKey'
+            hide-details
+            >
             <v-radio v-for="(v) in councilWatchHeatFields" :key=v
                 :label="v"
                 density='compact'
@@ -189,9 +193,8 @@ export default defineComponent({
             </v-radio>
           </v-radio-group>
         </v-list-item>
-        <v-divider></v-divider>
-        <v-spacer>&nbsp;</v-spacer>
-        <v-list-subheader v-if='!rail'>Focus Council</v-list-subheader>
+        <v-divider thickness='10'></v-divider>
+        <v-list-subheader v-if='!rail'>Show Council</v-list-subheader>
         <v-autocomplete
           v-model="focusedFeature"
           v-model:search="filterText"
