@@ -1,9 +1,2 @@
 # COUNCIL WATCH VICTORIA COST REPORT VISUALIZATION
-Council watch collated a table on all Victorian Councils' expenditure including CEO renumeration. This app visualizes data from that report.
-
-# TODO
-
-  - Heat map key.
-  - Attribution main sources
-  - Links to more info for each council.
-  - An about/doc page?
+[Council Watch](https://www.councilwatch.com.au) collated some data on  Victorian council expenditure, including CEO renumeration. This app visualizes data from that report.

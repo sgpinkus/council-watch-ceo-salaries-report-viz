@@ -5,7 +5,6 @@ import { defineComponent } from 'vue';
 import { LMap, LTileLayer } from 'vue-leaflet-ng';
 import FeaturesVic from '@/assets/features_vic.json';
 import FeatureProps from '@/assets/feature_props_vic.json';
-import type { Feature } from 'geojson';
 import colormap from 'colormap';
 
 const CouncilWatchFields = {
@@ -60,11 +59,11 @@ function areaPopup(id: number) {
 }
 
 
-function makeHeatMap(k: string, collection: Record<string, any>[], n = 20) {
+function makeHeatMap(k: string, collection: any[], n = 20) {
   const present = collection.filter(v => v[k] !== undefined && v[k] !== null);
-  const absent = collection.filter(v => v[k] === undefined || v[k] === null);
-  const sorted = present.toSorted((a,b) => a[k] < b[k] ? -1 : a[k] > b[k] ? 1 : 0 );
-  return sorted.map((v, k) => ({ _id: v._id, k, bucket: Math.floor(n*(k/present.length)) }));
+  // const absent = collection.filter(v => v[k] === undefined || v[k] === null);
+  const sorted = present.toSorted((a: any, b: any) => a[k] < b[k] ? -1 : a[k] > b[k] ? 1 : 0 );
+  return sorted.map((v: any, k: any) => ({ _id: v._id, k, bucket: Math.floor(n*(k/present.length)) }));
 }
 
 
@@ -105,6 +104,7 @@ export default defineComponent({
       featureProps: FeatureProps,
       filterText: 's',
       focusedFeature: undefined,
+      about: false,
     };
   },
   computed: {
@@ -127,7 +127,8 @@ export default defineComponent({
       },
       immediate: true,
     },
-    focusedFeature(n) {
+    focusedFeature(n, o) {
+      if(o) _leafletFeatureUnbind[o._id].closePopup();
       if(n) _leafletFeatureUnbind[n._id].openPopup();
     }
   },
@@ -142,7 +143,7 @@ export default defineComponent({
     bindFeatures() {
       Object.values(_leafletFeatureUnbind).map(v => v.remove());
       _leafletFeatureUnbind = Object.fromEntries(FeaturesVic.map((f) => {
-          return [f._id, L.geoJSON<Feature[]>(f as any, {
+          return [f._id, L.geoJSON<any[]>(f as any, {
           coordsToLatLng: (x: any) => L.Projection.SphericalMercator.unproject(L.point(x)),
           pointToLayer: (_, latlng) => L.circle(latlng),
           style: { // https://leafletjs.com/reference.html#path-option
@@ -164,6 +165,9 @@ export default defineComponent({
       }
       return uncolored;
     },
+    clearAll() {
+      this.focusedFeature = undefined;
+    }
   },
   mounted() {
     console.log('App Mounted');
@@ -172,11 +176,29 @@ export default defineComponent({
 </script>
 
 <template>
-  <v-app>
+  <v-app
+    @keyup.escape='clearAll'
+  >
+    <v-dialog
+      v-model='about'
+    >
+      <v-card class='pa-10'>
+        <ul>
+          <p>This is a map visualization of the <a href='https://www.councilwatch.com.au/general-5'>Council Salaries Report</a> (datafile <a href='https://onedrive.live.com/view.aspx?resid=CDB033654DCBC7C0!140382&cid=cdb033654dcbc7c0&authkey=!AEc182roe43hZcc&CT=1714822657200&OR=ItemsView'>HERE</a>).
+        Refer to <a href='https://www.councilwatch.com.au'>Council Watch</a> website for attribution and notes on data collection methods.
+        <br>
+        Map layers: <a href='https://www.openstreetmap.org/'>openstreetmap.org</a>. Victorian geographic regions: <a href='https://geo.abs.gov.au/arcgis/rest/services/ASGS2019/LGA/OGCFeatureServer'>geo.abs.gov.au</a>. Other software: See package.json
+        </p>
+        </ul>
+
+      </v-card>
+    </v-dialog>
     <v-navigation-drawer
       v-bind='navDrawerProps'
     >
       <v-list density='compact' style='padding: 0'>
+        <v-list-subheader v-if='!rail'>Doc</v-list-subheader>
+        <a href='#'><v-list-item @click='about = !about' prepend-icon='mdi-text-box' class='v-label'>About</v-list-item></a>
         <v-divider thickness='10'></v-divider>
         <v-list-subheader v-if='!rail'>Heat Map</v-list-subheader>
         <v-list-item  density='compact'>
@@ -205,6 +227,7 @@ export default defineComponent({
           no-filter
           style="max-height: 50vh;"
         ></v-autocomplete>
+        <!-- <v-divider thickness='10'></v-divider> -->
       </v-list>
     </v-navigation-drawer>
     <v-main app style="height: 100vh">
