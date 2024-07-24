@@ -1,2 +1,1 @@
-# COUNCIL WATCH VICTORIA COST REPORT VISUALIZATION
-[Council Watch](https://www.councilwatch.com.au) collated some data on  Victorian council expenditure, including CEO renumeration. This app visualizes data from that report.
+[This app](https://sgpinkus.github.io/council-watch-ceo-salaries-report-viz/) visualizes on Victorian council expenditure and CEO renumeration data from a report by [Council Watch](https://www.councilwatch.com.au).

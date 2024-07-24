@@ -3,7 +3,7 @@
   "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],
   "exclude": ["src/**/test.ts", "src/**mocha*.ts"],
   "compilerOptions": {
-    "baseUrl": "https://sgpinkus.github.io/council-watch-ceo-salaries-report-viz/",
+    "baseUrl": ".",
     "experimentalDecorators": true,
     "moduleResolution": "node",
     "paths": { "@/*": ["./src/*"] },
