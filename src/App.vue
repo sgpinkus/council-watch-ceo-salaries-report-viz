@@ -195,39 +195,44 @@ export default defineComponent({
     </v-dialog>
     <v-navigation-drawer
       v-bind='navDrawerProps'
+      :rail='rail'
     >
-      <v-list density='compact' style='padding: 0'>
-        <v-list-subheader v-if='!rail'>Doc</v-list-subheader>
-        <a href='#'><v-list-item @click='about = !about' prepend-icon='mdi-text-box' class='v-label'>About</v-list-item></a>
-        <v-divider thickness='10'></v-divider>
-        <v-list-subheader v-if='!rail'>Heat Map</v-list-subheader>
-        <v-list-item  density='compact'>
-          <v-radio-group
-            v-model='heatKey'
-            hide-details
-            >
-            <v-radio v-for="(v) in councilWatchHeatFields" :key=v
-                :label="v"
-                density='compact'
-                hide-details
-                :value='v'
-            >
-            </v-radio>
-          </v-radio-group>
-        </v-list-item>
-        <v-divider thickness='10'></v-divider>
-        <v-list-subheader v-if='!rail'>Show Council</v-list-subheader>
-        <v-autocomplete
-          v-model="focusedFeature"
-          v-model:search="filterText"
-          :items="featureProps"
-          item-title="Local Council"
-          item-value="Local Council"
-          return-object
-          no-filter
-          style="max-height: 50vh;"
-        ></v-autocomplete>
-        <!-- <v-divider thickness='10'></v-divider> -->
+      <v-list density='compact' class='pa-0 d-flex flex-column h-100'>
+        <v-list-item
+          prepend-icon="mdi-menu"
+          @click="rail = !rail"
+        />
+        <v-divider></v-divider>
+        <template v-if='!rail'>
+          <v-list-subheader >Heat Map</v-list-subheader>
+          <v-list-item  density='compact'>
+            <v-radio-group
+              v-model='heatKey'
+              hide-details
+              >
+              <v-radio v-for="(v) in councilWatchHeatFields" :key=v
+                  :label="v"
+                  density='compact'
+                  hide-details
+                  :value='v'
+              >
+              </v-radio>
+            </v-radio-group>
+          </v-list-item>
+          <v-list-subheader>Show Council</v-list-subheader>
+          <v-autocomplete
+            style='flex-grow: 0'
+            v-model="focusedFeature"
+            v-model:search="filterText"
+            :items="featureProps"
+            item-title="Local Council"
+            item-value="Local Council"
+            return-object
+            no-filter
+          ></v-autocomplete>
+          <v-spacer class='flex-grow-1' />
+          <a href='#'><v-list-item @click='about = !about' prepend-icon='mdi-text-box' class='v-label'>About</v-list-item></a>
+        </template>
       </v-list>
     </v-navigation-drawer>
     <v-main app style="height: 100vh">
